@@ -1,0 +1,1091 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "languageVersion": "2.0",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.44.1.10279",
+      "templateHash": "14879469084865006405"
+    }
+  },
+  "parameters": {
+    "environment": {
+      "type": "string",
+      "defaultValue": "dev",
+      "allowedValues": [
+        "dev",
+        "staging",
+        "prod"
+      ],
+      "metadata": {
+        "description": "Deployment environment name."
+      }
+    },
+    "appName": {
+      "type": "string",
+      "defaultValue": "wavetracker",
+      "metadata": {
+        "description": "Base application name used in resource naming."
+      }
+    },
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]",
+      "metadata": {
+        "description": "Azure region for resources."
+      }
+    },
+    "tags": {
+      "type": "object",
+      "defaultValue": {
+        "project": "WaveTracker",
+        "environment": "[parameters('environment')]",
+        "managedBy": "bicep"
+      },
+      "metadata": {
+        "description": "Tags applied to all resources."
+      }
+    },
+    "backendImageTag": {
+      "type": "string",
+      "defaultValue": "latest",
+      "metadata": {
+        "description": "Container image tag for backend container."
+      }
+    },
+    "frontendImageTag": {
+      "type": "string",
+      "defaultValue": "latest",
+      "metadata": {
+        "description": "Container image tag for frontend container."
+      }
+    },
+    "backendCpu": {
+      "type": "string",
+      "defaultValue": "0.5",
+      "metadata": {
+        "description": "Container Apps CPU allocation for backend app."
+      }
+    },
+    "backendMemory": {
+      "type": "string",
+      "defaultValue": "1Gi",
+      "metadata": {
+        "description": "Container Apps memory allocation for backend app."
+      }
+    },
+    "frontendCpu": {
+      "type": "string",
+      "defaultValue": "0.5",
+      "metadata": {
+        "description": "Container Apps CPU allocation for frontend app."
+      }
+    },
+    "frontendMemory": {
+      "type": "string",
+      "defaultValue": "1Gi",
+      "metadata": {
+        "description": "Container Apps memory allocation for frontend app."
+      }
+    },
+    "acrSku": {
+      "type": "string",
+      "defaultValue": "Basic",
+      "allowedValues": [
+        "Basic",
+        "Standard",
+        "Premium"
+      ],
+      "metadata": {
+        "description": "Azure Container Registry SKU."
+      }
+    },
+    "storageSku": {
+      "type": "string",
+      "defaultValue": "Standard_LRS",
+      "allowedValues": [
+        "Standard_LRS",
+        "Standard_GRS",
+        "Standard_RAGRS",
+        "Standard_ZRS",
+        "Standard_GZRS",
+        "Standard_RAGZRS"
+      ],
+      "metadata": {
+        "description": "Storage account SKU used for blob data."
+      }
+    },
+    "cosmosOfferType": {
+      "type": "string",
+      "defaultValue": "Standard",
+      "allowedValues": [
+        "Standard"
+      ],
+      "metadata": {
+        "description": "Cosmos DB account offer type."
+      }
+    },
+    "cosmosConsistencyLevel": {
+      "type": "string",
+      "defaultValue": "Session",
+      "allowedValues": [
+        "Eventual",
+        "ConsistentPrefix",
+        "Session",
+        "BoundedStaleness",
+        "Strong"
+      ],
+      "metadata": {
+        "description": "Cosmos DB consistency level."
+      }
+    }
+  },
+  "variables": {
+    "suffix": "[toLower(uniqueString(subscription().id, resourceGroup().id, parameters('appName'), parameters('environment')))]",
+    "shortSuffix": "[substring(variables('suffix'), 0, 8)]",
+    "logAnalyticsName": "[substring(format('{0}-{1}-law-{2}', parameters('appName'), parameters('environment'), variables('shortSuffix')), 0, 63)]",
+    "containerEnvName": "[substring(format('{0}-{1}-cae-{2}', parameters('appName'), parameters('environment'), variables('shortSuffix')), 0, 32)]",
+    "acrName": "[substring(replace(format('{0}{1}{2}acr', parameters('appName'), parameters('environment'), variables('shortSuffix')), '-', ''), 0, 50)]",
+    "storageAccountName": "[substring(replace(toLower(format('{0}{1}{2}sa', parameters('appName'), parameters('environment'), variables('shortSuffix'))), '-', ''), 0, 24)]",
+    "cosmosAccountName": "[substring(replace(toLower(format('{0}-{1}-{2}-cosmos', parameters('appName'), parameters('environment'), variables('shortSuffix'))), '-', ''), 0, 44)]",
+    "backendAppName": "[substring(format('{0}-{1}-backend', parameters('appName'), parameters('environment')), 0, 32)]",
+    "frontendAppName": "[substring(format('{0}-{1}-frontend', parameters('appName'), parameters('environment')), 0, 32)]"
+  },
+  "resources": {
+    "logAnalytics": {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "logAnalyticsModule",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "workspaceName": {
+            "value": "[variables('logAnalyticsName')]"
+          },
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "tags": {
+            "value": "[parameters('tags')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.44.1.10279",
+              "templateHash": "5043866215911319598"
+            }
+          },
+          "parameters": {
+            "workspaceName": {
+              "type": "string"
+            },
+            "location": {
+              "type": "string"
+            },
+            "tags": {
+              "type": "object",
+              "defaultValue": {}
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.OperationalInsights/workspaces",
+              "apiVersion": "2023-09-01",
+              "name": "[parameters('workspaceName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "sku": {
+                  "name": "PerGB2018"
+                },
+                "retentionInDays": 30
+              }
+            }
+          ],
+          "outputs": {
+            "id": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('workspaceName'))]"
+            },
+            "customerId": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.OperationalInsights/workspaces', parameters('workspaceName')), '2023-09-01').customerId]"
+            },
+            "sharedKey": {
+              "type": "string",
+              "value": "[listKeys(resourceId('Microsoft.OperationalInsights/workspaces', parameters('workspaceName')), '2023-09-01').primarySharedKey]"
+            }
+          }
+        }
+      }
+    },
+    "containerEnv": {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "containerEnvModule",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "managedEnvironmentName": {
+            "value": "[variables('containerEnvName')]"
+          },
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "workspaceCustomerId": {
+            "value": "[reference('logAnalytics').outputs.customerId.value]"
+          },
+          "workspaceSharedKey": {
+            "value": "[reference('logAnalytics').outputs.sharedKey.value]"
+          },
+          "tags": {
+            "value": "[parameters('tags')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.44.1.10279",
+              "templateHash": "763489751320077046"
+            }
+          },
+          "parameters": {
+            "managedEnvironmentName": {
+              "type": "string"
+            },
+            "location": {
+              "type": "string"
+            },
+            "workspaceCustomerId": {
+              "type": "string"
+            },
+            "workspaceSharedKey": {
+              "type": "securestring"
+            },
+            "tags": {
+              "type": "object",
+              "defaultValue": {}
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.App/managedEnvironments",
+              "apiVersion": "2024-03-01",
+              "name": "[parameters('managedEnvironmentName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "appLogsConfiguration": {
+                  "destination": "log-analytics",
+                  "logAnalyticsConfiguration": {
+                    "customerId": "[parameters('workspaceCustomerId')]",
+                    "sharedKey": "[parameters('workspaceSharedKey')]"
+                  }
+                },
+                "zoneRedundant": false
+              }
+            }
+          ],
+          "outputs": {
+            "id": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.App/managedEnvironments', parameters('managedEnvironmentName'))]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "logAnalytics"
+      ]
+    },
+    "registry": {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "acrModule",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "acrName": {
+            "value": "[variables('acrName')]"
+          },
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "sku": {
+            "value": "[parameters('acrSku')]"
+          },
+          "tags": {
+            "value": "[parameters('tags')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "languageVersion": "2.0",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.44.1.10279",
+              "templateHash": "4406620647876980415"
+            }
+          },
+          "parameters": {
+            "acrName": {
+              "type": "string"
+            },
+            "location": {
+              "type": "string"
+            },
+            "sku": {
+              "type": "string",
+              "defaultValue": "Basic"
+            },
+            "tags": {
+              "type": "object",
+              "defaultValue": {}
+            }
+          },
+          "resources": {
+            "acr": {
+              "type": "Microsoft.ContainerRegistry/registries",
+              "apiVersion": "2023-07-01",
+              "name": "[parameters('acrName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "sku": {
+                "name": "[parameters('sku')]"
+              },
+              "properties": {
+                "adminUserEnabled": true,
+                "publicNetworkAccess": "Enabled"
+              }
+            }
+          },
+          "outputs": {
+            "id": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.ContainerRegistry/registries', parameters('acrName'))]"
+            },
+            "name": {
+              "type": "string",
+              "value": "[parameters('acrName')]"
+            },
+            "loginServer": {
+              "type": "string",
+              "value": "[reference('acr').loginServer]"
+            },
+            "username": {
+              "type": "string",
+              "value": "[listCredentials('acr', '2023-07-01').username]"
+            },
+            "password": {
+              "type": "securestring",
+              "value": "[listCredentials('acr', '2023-07-01').passwords[0].value]"
+            }
+          }
+        }
+      }
+    },
+    "storage": {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "storageModule",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "storageAccountName": {
+            "value": "[variables('storageAccountName')]"
+          },
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "skuName": {
+            "value": "[parameters('storageSku')]"
+          },
+          "tags": {
+            "value": "[parameters('tags')]"
+          },
+          "blobContainers": {
+            "value": [
+              "raw-uploads",
+              "floor-maps"
+            ]
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.44.1.10279",
+              "templateHash": "7385796183886968868"
+            }
+          },
+          "parameters": {
+            "storageAccountName": {
+              "type": "string"
+            },
+            "location": {
+              "type": "string"
+            },
+            "skuName": {
+              "type": "string",
+              "defaultValue": "Standard_LRS"
+            },
+            "tags": {
+              "type": "object",
+              "defaultValue": {}
+            },
+            "blobContainers": {
+              "type": "array",
+              "defaultValue": []
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Storage/storageAccounts",
+              "apiVersion": "2023-05-01",
+              "name": "[parameters('storageAccountName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "sku": {
+                "name": "[parameters('skuName')]"
+              },
+              "kind": "StorageV2",
+              "properties": {
+                "minimumTlsVersion": "TLS1_2",
+                "allowBlobPublicAccess": false,
+                "supportsHttpsTrafficOnly": true,
+                "accessTier": "Hot"
+              }
+            },
+            {
+              "type": "Microsoft.Storage/storageAccounts/blobServices",
+              "apiVersion": "2023-05-01",
+              "name": "[format('{0}/{1}', parameters('storageAccountName'), 'default')]",
+              "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]"
+              ]
+            },
+            {
+              "copy": {
+                "name": "containers",
+                "count": "[length(parameters('blobContainers'))]"
+              },
+              "type": "Microsoft.Storage/storageAccounts/blobServices/containers",
+              "apiVersion": "2023-05-01",
+              "name": "[format('{0}/{1}/{2}', parameters('storageAccountName'), 'default', parameters('blobContainers')[copyIndex()])]",
+              "properties": {
+                "publicAccess": "None"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts/blobServices', parameters('storageAccountName'), 'default')]"
+              ]
+            }
+          ],
+          "outputs": {
+            "id": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]"
+            },
+            "accountName": {
+              "type": "string",
+              "value": "[parameters('storageAccountName')]"
+            },
+            "blobEndpoint": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName')), '2023-05-01').primaryEndpoints.blob]"
+            }
+          }
+        }
+      }
+    },
+    "cosmos": {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "cosmosTableModule",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "accountName": {
+            "value": "[variables('cosmosAccountName')]"
+          },
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "tags": {
+            "value": "[parameters('tags')]"
+          },
+          "offerType": {
+            "value": "[parameters('cosmosOfferType')]"
+          },
+          "consistencyLevel": {
+            "value": "[parameters('cosmosConsistencyLevel')]"
+          },
+          "tableNames": {
+            "value": [
+              "Floors",
+              "SurveySessions",
+              "SurveyReadings",
+              "IssueReports"
+            ]
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "languageVersion": "2.0",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.44.1.10279",
+              "templateHash": "1537609737324896776"
+            }
+          },
+          "parameters": {
+            "accountName": {
+              "type": "string"
+            },
+            "location": {
+              "type": "string"
+            },
+            "tags": {
+              "type": "object",
+              "defaultValue": {}
+            },
+            "offerType": {
+              "type": "string",
+              "defaultValue": "Standard"
+            },
+            "consistencyLevel": {
+              "type": "string",
+              "defaultValue": "Session"
+            },
+            "tableNames": {
+              "type": "array",
+              "defaultValue": []
+            }
+          },
+          "resources": {
+            "account": {
+              "type": "Microsoft.DocumentDB/databaseAccounts",
+              "apiVersion": "2023-04-15",
+              "name": "[parameters('accountName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "kind": "GlobalDocumentDB",
+              "properties": {
+                "databaseAccountOfferType": "[parameters('offerType')]",
+                "locations": [
+                  {
+                    "locationName": "[parameters('location')]",
+                    "failoverPriority": 0
+                  }
+                ],
+                "consistencyPolicy": {
+                  "defaultConsistencyLevel": "[parameters('consistencyLevel')]"
+                },
+                "capabilities": [
+                  {
+                    "name": "EnableTable"
+                  }
+                ],
+                "enableAutomaticFailover": false,
+                "publicNetworkAccess": "Enabled"
+              }
+            },
+            "tableService": {
+              "type": "Microsoft.DocumentDB/databaseAccounts/tableServices",
+              "apiVersion": "2023-04-15",
+              "name": "[format('{0}/{1}', parameters('accountName'), 'default')]",
+              "dependsOn": [
+                "account"
+              ]
+            },
+            "tables": {
+              "copy": {
+                "name": "tables",
+                "count": "[length(parameters('tableNames'))]"
+              },
+              "type": "Microsoft.DocumentDB/databaseAccounts/tableServices/tables",
+              "apiVersion": "2023-04-15",
+              "name": "[format('{0}/{1}/{2}', parameters('accountName'), 'default', parameters('tableNames')[copyIndex()])]",
+              "properties": {
+                "resource": {
+                  "id": "[parameters('tableNames')[copyIndex()]]"
+                },
+                "options": {}
+              },
+              "dependsOn": [
+                "tableService"
+              ]
+            }
+          },
+          "outputs": {
+            "id": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.DocumentDB/databaseAccounts', parameters('accountName'))]"
+            },
+            "tableEndpoint": {
+              "type": "string",
+              "value": "[reference('account').documentEndpoint]"
+            },
+            "primaryKey": {
+              "type": "securestring",
+              "value": "[listKeys('account', '2023-04-15').primaryMasterKey]"
+            }
+          }
+        }
+      }
+    },
+    "backend": {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "backendContainerAppModule",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "appName": {
+            "value": "[variables('backendAppName')]"
+          },
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "tags": {
+            "value": "[parameters('tags')]"
+          },
+          "managedEnvironmentId": {
+            "value": "[reference('containerEnv').outputs.id.value]"
+          },
+          "acrLoginServer": {
+            "value": "[reference('registry').outputs.loginServer.value]"
+          },
+          "acrUsername": {
+            "value": "[reference('registry').outputs.username.value]"
+          },
+          "acrPassword": {
+            "value": "[listOutputsWithSecureValues('registry', '2025-04-01').password]"
+          },
+          "imageName": {
+            "value": "backend"
+          },
+          "imageTag": {
+            "value": "[parameters('backendImageTag')]"
+          },
+          "cpu": {
+            "value": "[parameters('backendCpu')]"
+          },
+          "memory": {
+            "value": "[parameters('backendMemory')]"
+          },
+          "blobEndpoint": {
+            "value": "[reference('storage').outputs.blobEndpoint.value]"
+          },
+          "rawUploadsContainerName": {
+            "value": "raw-uploads"
+          },
+          "floorMapsContainerName": {
+            "value": "floor-maps"
+          },
+          "cosmosTableEndpoint": {
+            "value": "[reference('cosmos').outputs.tableEndpoint.value]"
+          },
+          "cosmosPrimaryKey": {
+            "value": "[listOutputsWithSecureValues('cosmos', '2025-04-01').primaryKey]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.44.1.10279",
+              "templateHash": "8647644072553640118"
+            }
+          },
+          "parameters": {
+            "appName": {
+              "type": "string"
+            },
+            "location": {
+              "type": "string"
+            },
+            "tags": {
+              "type": "object",
+              "defaultValue": {}
+            },
+            "managedEnvironmentId": {
+              "type": "string"
+            },
+            "acrLoginServer": {
+              "type": "string"
+            },
+            "acrUsername": {
+              "type": "string"
+            },
+            "acrPassword": {
+              "type": "securestring"
+            },
+            "imageName": {
+              "type": "string"
+            },
+            "imageTag": {
+              "type": "string",
+              "defaultValue": "latest"
+            },
+            "cpu": {
+              "type": "string",
+              "defaultValue": "0.5"
+            },
+            "memory": {
+              "type": "string",
+              "defaultValue": "1Gi"
+            },
+            "blobEndpoint": {
+              "type": "string"
+            },
+            "rawUploadsContainerName": {
+              "type": "string"
+            },
+            "floorMapsContainerName": {
+              "type": "string"
+            },
+            "cosmosTableEndpoint": {
+              "type": "string"
+            },
+            "cosmosPrimaryKey": {
+              "type": "securestring"
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.App/containerApps",
+              "apiVersion": "2024-03-01",
+              "name": "[parameters('appName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "managedEnvironmentId": "[parameters('managedEnvironmentId')]",
+                "configuration": {
+                  "ingress": {
+                    "external": true,
+                    "targetPort": 8000,
+                    "transport": "auto"
+                  },
+                  "registries": [
+                    {
+                      "server": "[parameters('acrLoginServer')]",
+                      "username": "[parameters('acrUsername')]",
+                      "passwordSecretRef": "acr-password"
+                    }
+                  ],
+                  "secrets": [
+                    {
+                      "name": "acr-password",
+                      "value": "[parameters('acrPassword')]"
+                    },
+                    {
+                      "name": "cosmos-primary-key",
+                      "value": "[parameters('cosmosPrimaryKey')]"
+                    }
+                  ]
+                },
+                "template": {
+                  "containers": [
+                    {
+                      "name": "backend",
+                      "image": "[format('{0}/{1}:{2}', parameters('acrLoginServer'), parameters('imageName'), parameters('imageTag'))]",
+                      "env": [
+                        {
+                          "name": "API_PORT",
+                          "value": "8000"
+                        },
+                        {
+                          "name": "WT_STORAGE_MODE",
+                          "value": "azure"
+                        },
+                        {
+                          "name": "WT_BLOB_ENDPOINT",
+                          "value": "[parameters('blobEndpoint')]"
+                        },
+                        {
+                          "name": "WT_BLOB_RAW_CONTAINER",
+                          "value": "[parameters('rawUploadsContainerName')]"
+                        },
+                        {
+                          "name": "WT_BLOB_FLOOR_MAP_CONTAINER",
+                          "value": "[parameters('floorMapsContainerName')]"
+                        },
+                        {
+                          "name": "WT_TABLE_ENDPOINT",
+                          "value": "[parameters('cosmosTableEndpoint')]"
+                        },
+                        {
+                          "name": "WT_TABLE_PRIMARY_KEY",
+                          "secretRef": "cosmos-primary-key"
+                        }
+                      ],
+                      "resources": {
+                        "cpu": "[json(parameters('cpu'))]",
+                        "memory": "[parameters('memory')]"
+                      }
+                    }
+                  ],
+                  "scale": {
+                    "minReplicas": 1,
+                    "maxReplicas": 2
+                  }
+                }
+              }
+            }
+          ],
+          "outputs": {
+            "id": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.App/containerApps', parameters('appName'))]"
+            },
+            "fqdn": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.App/containerApps', parameters('appName')), '2024-03-01').configuration.ingress.fqdn]"
+            },
+            "httpsUrl": {
+              "type": "string",
+              "value": "[format('https://{0}', reference(resourceId('Microsoft.App/containerApps', parameters('appName')), '2024-03-01').configuration.ingress.fqdn)]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "containerEnv",
+        "cosmos",
+        "registry",
+        "storage"
+      ]
+    },
+    "frontend": {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "frontendContainerAppModule",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "appName": {
+            "value": "[variables('frontendAppName')]"
+          },
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "tags": {
+            "value": "[parameters('tags')]"
+          },
+          "managedEnvironmentId": {
+            "value": "[reference('containerEnv').outputs.id.value]"
+          },
+          "acrLoginServer": {
+            "value": "[reference('registry').outputs.loginServer.value]"
+          },
+          "acrUsername": {
+            "value": "[reference('registry').outputs.username.value]"
+          },
+          "acrPassword": {
+            "value": "[listOutputsWithSecureValues('registry', '2025-04-01').password]"
+          },
+          "imageName": {
+            "value": "frontend"
+          },
+          "imageTag": {
+            "value": "[parameters('frontendImageTag')]"
+          },
+          "cpu": {
+            "value": "[parameters('frontendCpu')]"
+          },
+          "memory": {
+            "value": "[parameters('frontendMemory')]"
+          },
+          "backendBaseUrl": {
+            "value": "[reference('backend').outputs.httpsUrl.value]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.44.1.10279",
+              "templateHash": "14050141763282796355"
+            }
+          },
+          "parameters": {
+            "appName": {
+              "type": "string"
+            },
+            "location": {
+              "type": "string"
+            },
+            "tags": {
+              "type": "object",
+              "defaultValue": {}
+            },
+            "managedEnvironmentId": {
+              "type": "string"
+            },
+            "acrLoginServer": {
+              "type": "string"
+            },
+            "acrUsername": {
+              "type": "string"
+            },
+            "acrPassword": {
+              "type": "securestring"
+            },
+            "imageName": {
+              "type": "string"
+            },
+            "imageTag": {
+              "type": "string",
+              "defaultValue": "latest"
+            },
+            "cpu": {
+              "type": "string",
+              "defaultValue": "0.5"
+            },
+            "memory": {
+              "type": "string",
+              "defaultValue": "1Gi"
+            },
+            "backendBaseUrl": {
+              "type": "string"
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.App/containerApps",
+              "apiVersion": "2024-03-01",
+              "name": "[parameters('appName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "managedEnvironmentId": "[parameters('managedEnvironmentId')]",
+                "configuration": {
+                  "ingress": {
+                    "external": true,
+                    "targetPort": 3000,
+                    "transport": "auto"
+                  },
+                  "registries": [
+                    {
+                      "server": "[parameters('acrLoginServer')]",
+                      "username": "[parameters('acrUsername')]",
+                      "passwordSecretRef": "acr-password"
+                    }
+                  ],
+                  "secrets": [
+                    {
+                      "name": "acr-password",
+                      "value": "[parameters('acrPassword')]"
+                    }
+                  ]
+                },
+                "template": {
+                  "containers": [
+                    {
+                      "name": "frontend",
+                      "image": "[format('{0}/{1}:{2}', parameters('acrLoginServer'), parameters('imageName'), parameters('imageTag'))]",
+                      "env": [
+                        {
+                          "name": "VITE_API_BASE_URL",
+                          "value": "[parameters('backendBaseUrl')]"
+                        }
+                      ],
+                      "resources": {
+                        "cpu": "[json(parameters('cpu'))]",
+                        "memory": "[parameters('memory')]"
+                      }
+                    }
+                  ],
+                  "scale": {
+                    "minReplicas": 1,
+                    "maxReplicas": 2
+                  }
+                }
+              }
+            }
+          ],
+          "outputs": {
+            "id": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.App/containerApps', parameters('appName'))]"
+            },
+            "fqdn": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.App/containerApps', parameters('appName')), '2024-03-01').configuration.ingress.fqdn]"
+            },
+            "httpsUrl": {
+              "type": "string",
+              "value": "[format('https://{0}', reference(resourceId('Microsoft.App/containerApps', parameters('appName')), '2024-03-01').configuration.ingress.fqdn)]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "backend",
+        "containerEnv",
+        "registry"
+      ]
+    }
+  },
+  "outputs": {
+    "backendUrl": {
+      "type": "string",
+      "value": "[reference('backend').outputs.httpsUrl.value]"
+    },
+    "frontendUrl": {
+      "type": "string",
+      "value": "[reference('frontend').outputs.httpsUrl.value]"
+    },
+    "acrLoginServer": {
+      "type": "string",
+      "value": "[reference('registry').outputs.loginServer.value]"
+    },
+    "storageAccountName": {
+      "type": "string",
+      "value": "[reference('storage').outputs.accountName.value]"
+    },
+    "cosmosTableEndpoint": {
+      "type": "string",
+      "value": "[reference('cosmos').outputs.tableEndpoint.value]"
+    }
+  }
+}
