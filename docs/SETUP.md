@@ -45,6 +45,7 @@
 3. Run local checks before push
    - Backend: `Set-Location backend; python -m pytest -q`
    - Frontend: `Set-Location frontend; npm run test`
+   - Collectors contract: `Set-Location .; d:/workspace/WaveTracker-1/.venv/Scripts/python.exe -m pytest collectors/tests -q`
 4. CI quality gate
    - GitHub Actions workflow: `.github/workflows/quality-gate.yml`
    - Architecture checks start in warning mode and can be tightened later.
