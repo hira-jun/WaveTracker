@@ -1,7 +1,14 @@
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 
 from app.api.schemas.floors import Floor, FloorCreate, FloorMapUpload
-from app.services.dependencies import blob_adapter, require_admin_access, table_adapter
+from app.services.dependencies import (
+    create_floor_use_case,
+    list_floors_use_case,
+    require_admin_access,
+    set_floor_map_use_case,
+    upload_floor_map_use_case,
+)
+from app.services.use_cases.floors import FloorNotFoundError
 
 
 router = APIRouter()
@@ -9,7 +16,7 @@ router = APIRouter()
 
 @router.get("", response_model=list[Floor])
 def list_floors() -> list[Floor]:
-    return table_adapter.list_floors()
+    return list_floors_use_case.execute()
 
 
 @router.post("", response_model=Floor)
@@ -18,7 +25,7 @@ def create_floor(
     _admin: None = Depends(require_admin_access),
 ) -> Floor:
     del _admin
-    return table_adapter.create_floor(name=payload.name)
+    return create_floor_use_case.execute(name=payload.name)
 
 
 @router.post("/{floor_id}/map", response_model=Floor)
@@ -29,8 +36,8 @@ def upload_floor_map(
 ) -> Floor:
     del _admin
     try:
-        return table_adapter.set_floor_map(floor_id=floor_id, map_image_url=payload.map_image_url)
-    except KeyError as exc:
+        return set_floor_map_use_case.execute(floor_id=floor_id, map_image_url=payload.map_image_url)
+    except FloorNotFoundError as exc:
         raise HTTPException(status_code=404, detail="floor not found") from exc
 
 
@@ -41,13 +48,12 @@ async def upload_floor_map_file(
     _admin: None = Depends(require_admin_access),
 ) -> Floor:
     del _admin
-    if floor_id not in {floor.id for floor in table_adapter.list_floors()}:
-        raise HTTPException(status_code=404, detail="floor not found")
-
     payload = await map_file.read()
-    saved_path = blob_adapter.save_floor_map(
-        floor_id=floor_id,
-        filename=map_file.filename or "map.png",
-        payload=payload,
-    )
-    return table_adapter.set_floor_map(floor_id=floor_id, map_image_url=str(saved_path))
+    try:
+        return upload_floor_map_use_case.execute(
+            floor_id=floor_id,
+            filename=map_file.filename or "map.png",
+            payload=payload,
+        )
+    except FloorNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="floor not found") from exc

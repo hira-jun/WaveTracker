@@ -4,6 +4,18 @@ from app.services.admin_auth import AdminAuthService
 from app.services.parsers.zip_parser import parse_survey_zip
 from app.services.storage.local_blob_adapter import LocalBlobAdapter
 from app.services.storage.local_table_adapter import LocalTableAdapter
+from app.services.use_cases.analytics import (
+    GetAPSummaryUseCase,
+    GetHeatmapUseCase,
+    GetIssueSummaryUseCase,
+)
+from app.services.use_cases.floors import (
+    CreateFloorUseCase,
+    ListFloorsUseCase,
+    SetFloorMapUseCase,
+    UploadFloorMapUseCase,
+)
+from app.services.use_cases.issues import CreateIssueUseCase, ListIssuesUseCase
 from app.services.use_cases.survey_queries import (
 	GetSurveySessionUseCase,
 	ListSurveyReadingsUseCase,
@@ -23,6 +35,15 @@ upload_survey_use_case = UploadSurveyUseCase(
 list_survey_sessions_use_case = ListSurveySessionsUseCase(table_port=table_adapter)
 get_survey_session_use_case = GetSurveySessionUseCase(table_port=table_adapter)
 list_survey_readings_use_case = ListSurveyReadingsUseCase(table_port=table_adapter)
+list_floors_use_case = ListFloorsUseCase(table_port=table_adapter)
+create_floor_use_case = CreateFloorUseCase(table_port=table_adapter)
+set_floor_map_use_case = SetFloorMapUseCase(table_port=table_adapter)
+upload_floor_map_use_case = UploadFloorMapUseCase(table_port=table_adapter, blob_port=blob_adapter)
+create_issue_use_case = CreateIssueUseCase(table_port=table_adapter)
+list_issues_use_case = ListIssuesUseCase(table_port=table_adapter)
+get_heatmap_use_case = GetHeatmapUseCase(table_port=table_adapter)
+get_ap_summary_use_case = GetAPSummaryUseCase(table_port=table_adapter)
+get_issue_summary_use_case = GetIssueSummaryUseCase(table_port=table_adapter)
 
 
 def require_admin_access(authorization: str | None = Header(default=None)) -> str:

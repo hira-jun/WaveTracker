@@ -48,7 +48,9 @@
    - Collectors contract: `Set-Location .; d:/workspace/WaveTracker-1/.venv/Scripts/python.exe -m pytest collectors/tests -q`
 4. CI quality gate
    - GitHub Actions workflow: `.github/workflows/quality-gate.yml`
-   - Architecture checks start in warning mode and can be tightened later.
+   - Architecture warnings remain in warning mode.
+   - Required architecture rule is enabled: `backend/app/domain/**` must not import FastAPI concerns.
+   - Required architecture rule is enabled: `backend/app/api/routes/**` must not import local storage implementation modules.
 
 ## CORS Configuration (Local/Container)
 

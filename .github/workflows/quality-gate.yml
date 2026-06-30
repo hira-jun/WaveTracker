@@ -113,3 +113,34 @@ jobs:
           if [ -z "$backend_http_in_domain" ] && [ -z "$route_to_adapter" ]; then
             echo "No architecture anti-patterns detected by current rules."
           fi
+
+  architecture-required:
+    name: Architecture Guardrail Required
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Enforce no FastAPI dependency in domain
+        run: |
+          set -e
+          echo "Enforcing required architecture rule: domain must be framework-agnostic"
+          violations=$(grep -R -n -E "from fastapi|import fastapi|HTTPException" backend/app/domain 2>/dev/null || true)
+          if [ -n "$violations" ]; then
+            echo "Domain layer must not depend on FastAPI or HTTP exceptions."
+            echo "$violations"
+            exit 1
+          fi
+          echo "Required architecture rule passed."
+
+      - name: Enforce no storage implementation imports in routes
+        run: |
+          set -e
+          echo "Enforcing required architecture rule: routes must not import storage implementations"
+          violations=$(grep -R -n -E "services\.storage\.local_(blob|table)_adapter|from app\.services\.storage\.local_(blob|table)_adapter" backend/app/api/routes 2>/dev/null || true)
+          if [ -n "$violations" ]; then
+            echo "Routes must depend on use-cases/dependencies, not storage implementation modules."
+            echo "$violations"
+            exit 1
+          fi
+          echo "Required architecture rule passed."
