@@ -11,6 +11,7 @@ export function FloorMap({ onPointSelected, readings }: FloorMapProps) {
     <div>
       <p style={{ margin: "0 0 0.5rem 0" }}>Floor map (Phase0 placeholder canvas)</p>
       <div
+        data-testid="floor-map-canvas"
         onClick={(event) => {
           const rect = event.currentTarget.getBoundingClientRect();
           const x = event.clientX - rect.left;
