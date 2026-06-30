@@ -1,8 +1,12 @@
 from fastapi import APIRouter, File, HTTPException, Query, UploadFile
 
 from app.api.schemas.survey import SurveyReading, SurveySession, SurveyUploadResponse
-from app.services.parsers.zip_parser import SurveyZipParseError, parse_survey_zip
-from app.services.dependencies import blob_adapter, table_adapter
+from app.services.dependencies import table_adapter, upload_survey_use_case
+from app.services.use_cases.upload_survey import (
+    FloorNotFoundError,
+    InvalidSurveyPayloadError,
+    UploadSurveyRequest,
+)
 
 
 router = APIRouter()
@@ -15,35 +19,21 @@ async def upload_survey(
     y_norm: float = Query(..., ge=0, le=1),
     upload: UploadFile = File(...),
 ) -> SurveyUploadResponse:
-    if floor_id not in {floor.id for floor in table_adapter.list_floors()}:
-        raise HTTPException(status_code=404, detail="floor not found")
-
     payload = await upload.read()
-    blob_adapter.save_raw_upload(upload.filename or "survey.zip", payload)
+    request = UploadSurveyRequest(
+        floor_id=floor_id,
+        x_norm=x_norm,
+        y_norm=y_norm,
+        filename=upload.filename or "survey.zip",
+        payload=payload,
+    )
 
     try:
-        parsed_payload = parse_survey_zip(
-            payload,
-            floor_id=floor_id,
-            fallback_x_norm=x_norm,
-            fallback_y_norm=y_norm,
-        )
-    except SurveyZipParseError as exc:
+        return upload_survey_use_case.execute(request)
+    except FloorNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except InvalidSurveyPayloadError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-
-    session = table_adapter.add_survey_session(
-        floor_id=floor_id,
-        source_filename=upload.filename or "survey.zip",
-        location_x_norm=x_norm,
-        location_y_norm=y_norm,
-        metadata=parsed_payload.metadata,
-        networks_excerpt=parsed_payload.networks_excerpt,
-        interface_excerpt=parsed_payload.interface_excerpt,
-        log_files=parsed_payload.log_files,
-    )
-    table_adapter.add_readings(parsed_payload.readings)
-
-    return SurveyUploadResponse(session=session, reading_count=len(parsed_payload.readings))
 
 
 @router.get("/readings", response_model=list[SurveyReading])

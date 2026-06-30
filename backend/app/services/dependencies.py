@@ -1,13 +1,20 @@
 from fastapi import Header, HTTPException
 
 from app.services.admin_auth import AdminAuthService
+from app.services.parsers.zip_parser import parse_survey_zip
 from app.services.storage.local_blob_adapter import LocalBlobAdapter
 from app.services.storage.local_table_adapter import LocalTableAdapter
+from app.services.use_cases.upload_survey import UploadSurveyUseCase
 
 
 table_adapter = LocalTableAdapter()
 blob_adapter = LocalBlobAdapter()
 admin_auth = AdminAuthService()
+upload_survey_use_case = UploadSurveyUseCase(
+	table_port=table_adapter,
+	blob_port=blob_adapter,
+	parse_zip=parse_survey_zip,
+)
 
 
 def require_admin_access(authorization: str | None = Header(default=None)) -> str:

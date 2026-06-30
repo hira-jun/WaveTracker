@@ -1,23 +1,10 @@
-from pathlib import Path
-
 from fastapi.testclient import TestClient
 
 from app.main import app
-from app.services.dependencies import admin_auth
 
 
-def _reset_admin_state() -> None:
-    admin_auth._tokens = {}
-    admin_auth._password_salt = ""
-    admin_auth._password_hash = ""
-    admin_auth._settings = {}
-    state_path = Path(admin_auth._state_path)
-    if state_path.exists():
-        state_path.unlink()
-
-
-def test_admin_setup_and_login_flow() -> None:
-    _reset_admin_state()
+def test_admin_setup_and_login_flow(reset_admin_state) -> None:
+    reset_admin_state()
     client = TestClient(app)
 
     status_response = client.get("/admin/status")
@@ -54,8 +41,8 @@ def test_floor_mutation_requires_admin_token() -> None:
     assert create_response.status_code == 401
 
 
-def test_admin_logout_revokes_token() -> None:
-    _reset_admin_state()
+def test_admin_logout_revokes_token(reset_admin_state) -> None:
+    reset_admin_state()
     client = TestClient(app)
 
     setup_response = client.post("/admin/setup", json={"password": "AdminPassw0rd!"})
@@ -77,8 +64,8 @@ def test_admin_logout_revokes_token() -> None:
     assert settings_response.status_code == 401
 
 
-def test_admin_change_password_invalidates_existing_sessions() -> None:
-    _reset_admin_state()
+def test_admin_change_password_invalidates_existing_sessions(reset_admin_state) -> None:
+    reset_admin_state()
     client = TestClient(app)
 
     setup_response = client.post("/admin/setup", json={"password": "AdminPassw0rd!"})

@@ -76,8 +76,8 @@ jobs:
         run: |
           set +e
           echo "Running architecture scan in warning mode"
-          backend_http_in_domain=$(rg -n "HTTPException" backend/app/domain backend/app/services || true)
-          route_to_adapter=$(rg -n "(local_table_adapter|local_blob_adapter|table_adapter\.|blob_adapter\.)" backend/app/api/routes || true)
+          backend_http_in_domain=$(grep -R -n -E "HTTPException" backend/app/domain backend/app/services 2>/dev/null || true)
+          route_to_adapter=$(grep -R -n -E "local_table_adapter|local_blob_adapter|table_adapter\.|blob_adapter\." backend/app/api/routes 2>/dev/null || true)
 
           if [ -n "$backend_http_in_domain" ]; then
             echo "::warning title=Domain/Service HTTPException usage::Avoid framework HTTP exceptions outside API boundary"

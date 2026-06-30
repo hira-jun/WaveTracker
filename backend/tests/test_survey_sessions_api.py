@@ -1,19 +1,9 @@
 import json
-from io import BytesIO
-from zipfile import ZipFile
 
 from fastapi.testclient import TestClient
 
 from app.main import app
 from app.services.dependencies import table_adapter
-
-
-def _build_zip(files: dict[str, str]) -> bytes:
-    buffer = BytesIO()
-    with ZipFile(buffer, "w") as archive:
-        for path, content in files.items():
-            archive.writestr(path, content)
-    return buffer.getvalue()
 
 
 def test_list_sessions_by_floor() -> None:
@@ -42,9 +32,9 @@ def test_get_session_detail_not_found() -> None:
     assert response.status_code == 404
 
 
-def test_upload_survey_persists_selected_location() -> None:
+def test_upload_survey_persists_selected_location(zip_payload_builder) -> None:
     floor = table_adapter.create_floor("Upload Location Floor")
-    payload = _build_zip(
+    payload = zip_payload_builder(
         {
             "metadata.json": json.dumps({"collector": "windows"}),
             "scan.json": json.dumps(

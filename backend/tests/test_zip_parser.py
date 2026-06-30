@@ -1,20 +1,10 @@
 import json
-from io import BytesIO
-from zipfile import ZipFile
 
 from app.services.parsers.zip_parser import SurveyZipParseError, parse_survey_zip
 
 
-def _build_zip(files: dict[str, str]) -> bytes:
-    buffer = BytesIO()
-    with ZipFile(buffer, "w") as archive:
-        for path, content in files.items():
-            archive.writestr(path, content)
-    return buffer.getvalue()
-
-
-def test_parse_survey_zip_extracts_readings() -> None:
-    payload = _build_zip(
+def test_parse_survey_zip_extracts_readings(zip_payload_builder) -> None:
+    payload = zip_payload_builder(
         {
             "metadata.json": json.dumps({"collector": "windows"}),
             "scan.json": json.dumps(
@@ -50,8 +40,8 @@ def test_parse_survey_zip_extracts_readings() -> None:
     assert parsed.log_files == ["logs/wlan.log"]
 
 
-def test_parse_survey_zip_normalizes_6ghz_band() -> None:
-    payload = _build_zip(
+def test_parse_survey_zip_normalizes_6ghz_band(zip_payload_builder) -> None:
+    payload = zip_payload_builder(
         {
             "metadata.json": json.dumps({"collector": "windows"}),
             "scan.json": json.dumps(
@@ -80,8 +70,8 @@ def test_parse_survey_zip_normalizes_6ghz_band() -> None:
     assert parsed.readings[0].band == "6GHz"
 
 
-def test_parse_survey_zip_uses_fallback_location_when_missing() -> None:
-    payload = _build_zip(
+def test_parse_survey_zip_uses_fallback_location_when_missing(zip_payload_builder) -> None:
+    payload = zip_payload_builder(
         {
             "metadata.json": json.dumps({"collector": "windows"}),
             "scan.json": json.dumps(
@@ -108,8 +98,8 @@ def test_parse_survey_zip_uses_fallback_location_when_missing() -> None:
     assert parsed.readings[0].y_norm == 0.85
 
 
-def test_parse_survey_zip_requires_logs_and_files() -> None:
-    payload = _build_zip(
+def test_parse_survey_zip_requires_logs_and_files(zip_payload_builder) -> None:
+    payload = zip_payload_builder(
         {
             "metadata.json": json.dumps({"collector": "windows"}),
             "scan.json": json.dumps({"readings": []}),
