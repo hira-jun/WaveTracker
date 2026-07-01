@@ -37,6 +37,21 @@ LATEST_NETWORKS_TEXT=""
 LATEST_INTERFACE_TEXT=""
 SCAN_JSON_FIRST_ENTRY=1
 
+resolve_band_from_channel() {
+	channel="$1"
+	if [ "${channel}" -ge 1 ] && [ "${channel}" -le 14 ]; then
+		echo "2.4GHz"
+		return
+	fi
+
+	if [ "${channel}" -ge 181 ]; then
+		echo "6GHz"
+		return
+	fi
+
+	echo "5GHz"
+}
+
 echo "WaveTracker macOS collector started: sampling every ${SAMPLE_INTERVAL_SECONDS} seconds for about ${SESSION_DURATION_SECONDS} seconds"
 
 cat > "${SCAN_JSON}" <<EOF
@@ -72,6 +87,8 @@ while [ "$(date +%s)" -lt "${SESSION_END_SECONDS}" ]; do
 	BSSID="$(printf '%s\n' "${AIRPORT_INFO}" | awk -F': ' '/^[[:space:]]*BSSID: / {print $2; exit}')"
 	CHANNEL="$(printf '%s\n' "${AIRPORT_INFO}" | awk -F': ' '/^[[:space:]]*Channel: / {gsub(/[^0-9].*$/, "", $2); print $2; exit}')"
 	RSSI="$(printf '%s\n' "${AIRPORT_INFO}" | awk -F': ' '/^[[:space:]]*RSSI: / {gsub(/[^0-9-].*$/, "", $2); print $2; exit}')"
+	CHANNEL_VALUE="${CHANNEL:-0}"
+	BAND="$(resolve_band_from_channel "${CHANNEL_VALUE}")"
 
 	if [ ${SCAN_JSON_FIRST_ENTRY} -eq 1 ]; then
 		SCAN_JSON_FIRST_ENTRY=0
@@ -83,7 +100,8 @@ while [ "$(date +%s)" -lt "${SESSION_END_SECONDS}" ]; do
 		{
 			"ssid": "${SSID:-unknown-ssid}",
 			"bssid": "${BSSID:-00:00:00:00:00:00}",
-			"channel": ${CHANNEL:-0},
+			"channel": ${CHANNEL_VALUE},
+			"band": "${BAND}",
 			"signal_dbm": ${RSSI:--90},
 			"captured_at": "${CAPTURED_AT}"
 		}

@@ -42,6 +42,20 @@ function Convert-SignalToDbm {
   return -90
 }
 
+function Resolve-BandFromChannel {
+  param([int]$Channel)
+
+  if ($Channel -le 14 -and $Channel -gt 0) {
+    return "2.4GHz"
+  }
+
+  if ($Channel -ge 181) {
+    return "6GHz"
+  }
+
+  return "5GHz"
+}
+
 function Get-InterfaceReadings {
   param([string]$Text, [string]$CapturedAt)
 
@@ -64,6 +78,7 @@ function Get-InterfaceReadings {
       ssid = $ssid
       bssid = $bssid
       channel = $channel
+      band = Resolve-BandFromChannel -Channel $channel
       signal_dbm = $signalDbm
       captured_at = $CapturedAt
     }
@@ -116,6 +131,7 @@ function Get-InterfaceReadings {
       ssid = 'unknown-ssid'
       bssid = '00:00:00:00:00:00'
       channel = 0
+      band = Resolve-BandFromChannel -Channel 0
       signal_dbm = -90
       captured_at = $CapturedAt
     }
@@ -134,10 +150,12 @@ function Get-NetworkReadings {
   foreach ($line in $Text -split "`r?`n") {
     if ($line -match '^\s*SSID\s*\d*\s*:\s*(.*)$') {
       if ($null -ne $currentReading) {
+        $channel = if ($currentReading.Contains('channel') -and $currentReading.channel) { [int]$currentReading.channel } else { 0 }
         $readings += [ordered]@{
           ssid = if ($currentReading.Contains('ssid') -and $currentReading.ssid) { $currentReading.ssid } else { 'unknown-ssid' }
           bssid = if ($currentReading.Contains('bssid') -and $currentReading.bssid) { $currentReading.bssid } else { '00:00:00:00:00:00' }
-          channel = if ($currentReading.Contains('channel') -and $currentReading.channel) { [int]$currentReading.channel } else { 0 }
+          channel = $channel
+          band = Resolve-BandFromChannel -Channel $channel
           signal_dbm = if ($currentReading.Contains('signal')) { Convert-SignalToDbm $currentReading.signal } else { -90 }
           captured_at = $CapturedAt
         }
@@ -150,10 +168,12 @@ function Get-NetworkReadings {
 
     if ($line -match '^\s*BSSID\s*\d*\s*:\s*(.+)$') {
       if ($null -ne $currentReading) {
+        $channel = if ($currentReading.Contains('channel') -and $currentReading.channel) { [int]$currentReading.channel } else { 0 }
         $readings += [ordered]@{
           ssid = if ($currentReading.Contains('ssid') -and $currentReading.ssid) { $currentReading.ssid } else { 'unknown-ssid' }
           bssid = if ($currentReading.Contains('bssid') -and $currentReading.bssid) { $currentReading.bssid } else { '00:00:00:00:00:00' }
-          channel = if ($currentReading.Contains('channel') -and $currentReading.channel) { [int]$currentReading.channel } else { 0 }
+          channel = $channel
+          band = Resolve-BandFromChannel -Channel $channel
           signal_dbm = if ($currentReading.Contains('signal')) { Convert-SignalToDbm $currentReading.signal } else { -90 }
           captured_at = $CapturedAt
         }
@@ -185,10 +205,12 @@ function Get-NetworkReadings {
   }
 
   if ($null -ne $currentReading) {
+    $channel = if ($currentReading.Contains('channel') -and $currentReading.channel) { [int]$currentReading.channel } else { 0 }
     $readings += [ordered]@{
       ssid = if ($currentReading.Contains('ssid') -and $currentReading.ssid) { $currentReading.ssid } else { 'unknown-ssid' }
       bssid = if ($currentReading.Contains('bssid') -and $currentReading.bssid) { $currentReading.bssid } else { '00:00:00:00:00:00' }
-      channel = if ($currentReading.Contains('channel') -and $currentReading.channel) { [int]$currentReading.channel } else { 0 }
+      channel = $channel
+      band = Resolve-BandFromChannel -Channel $channel
       signal_dbm = if ($currentReading.Contains('signal')) { Convert-SignalToDbm $currentReading.signal } else { -90 }
       captured_at = $CapturedAt
     }
@@ -199,6 +221,7 @@ function Get-NetworkReadings {
       ssid = 'unknown-ssid'
       bssid = '00:00:00:00:00:00'
       channel = 0
+      band = Resolve-BandFromChannel -Channel 0
       signal_dbm = -90
       captured_at = $CapturedAt
     }

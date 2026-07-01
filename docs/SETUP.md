@@ -51,6 +51,7 @@
    - Architecture warnings remain in warning mode.
    - Required architecture rule is enabled: `backend/app/domain/**` must not import FastAPI concerns.
    - Required architecture rule is enabled: `backend/app/api/routes/**` must not import local storage implementation modules.
+   - Required architecture rule is enabled: `backend/app/api/routes/**` must not directly reference adapters (`table_adapter` / `blob_adapter`).
 
 ## CORS Configuration (Local/Container)
 

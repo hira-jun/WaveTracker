@@ -98,19 +98,13 @@ jobs:
           set +e
           echo "Running architecture scan in warning mode"
           backend_http_in_domain=$(grep -R -n -E "HTTPException" backend/app/domain backend/app/services 2>/dev/null || true)
-          route_to_adapter=$(grep -R -n -E "local_table_adapter|local_blob_adapter|table_adapter\.|blob_adapter\." backend/app/api/routes 2>/dev/null || true)
 
           if [ -n "$backend_http_in_domain" ]; then
             echo "::warning title=Domain/Service HTTPException usage::Avoid framework HTTP exceptions outside API boundary"
             echo "$backend_http_in_domain"
           fi
 
-          if [ -n "$route_to_adapter" ]; then
-            echo "::warning title=Route direct adapter usage::Move business orchestration into use-case layer"
-            echo "$route_to_adapter"
-          fi
-
-          if [ -z "$backend_http_in_domain" ] && [ -z "$route_to_adapter" ]; then
+          if [ -z "$backend_http_in_domain" ]; then
             echo "No architecture anti-patterns detected by current rules."
           fi
 
@@ -133,13 +127,13 @@ jobs:
           fi
           echo "Required architecture rule passed."
 
-      - name: Enforce no storage implementation imports in routes
+      - name: Enforce no direct storage adapter usage in routes
         run: |
           set -e
-          echo "Enforcing required architecture rule: routes must not import storage implementations"
-          violations=$(grep -R -n -E "services\.storage\.local_(blob|table)_adapter|from app\.services\.storage\.local_(blob|table)_adapter" backend/app/api/routes 2>/dev/null || true)
+          echo "Enforcing required architecture rule: routes must not directly access adapters"
+          violations=$(grep -R -n -E "local_table_adapter|local_blob_adapter|table_adapter\.|blob_adapter\.|services\.storage\.local_(blob|table)_adapter|from app\.services\.storage\.local_(blob|table)_adapter" backend/app/api/routes 2>/dev/null || true)
           if [ -n "$violations" ]; then
-            echo "Routes must depend on use-cases/dependencies, not storage implementation modules."
+            echo "Routes must depend on use-cases/dependencies, not direct storage adapter references."
             echo "$violations"
             exit 1
           fi

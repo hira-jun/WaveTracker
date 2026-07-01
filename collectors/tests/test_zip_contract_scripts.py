@@ -17,6 +17,15 @@ METADATA_FIELDS = [
     "hostnameHash",
 ]
 
+SCAN_READING_FIELDS = [
+    "ssid",
+    "bssid",
+    "channel",
+    "band",
+    "signal_dbm",
+    "captured_at",
+]
+
 
 def _read_script(path: Path) -> str:
     return path.read_text(encoding="utf-8")
@@ -39,6 +48,15 @@ def test_collectors_define_required_metadata_fields() -> None:
     macos = _read_script(Path("collectors/macos/collect.sh"))
 
     for field in METADATA_FIELDS:
+        assert field in windows
+        assert field in macos
+
+
+def test_collectors_define_required_scan_reading_fields() -> None:
+    windows = _read_script(Path("collectors/windows/collect.ps1"))
+    macos = _read_script(Path("collectors/macos/collect.sh"))
+
+    for field in SCAN_READING_FIELDS:
         assert field in windows
         assert field in macos
 

@@ -42,6 +42,7 @@
 - Phase B (required): block merge on failing tests and selected anti-patterns.
 - First promoted required rule: no FastAPI dependency (`from fastapi`, `import fastapi`, `HTTPException`) inside `backend/app/domain/**`.
 - Second promoted required rule: no direct imports of local storage implementations (`local_blob_adapter`, `local_table_adapter`) inside `backend/app/api/routes/**`.
+- Third promoted required rule: no direct adapter references (`table_adapter.`, `blob_adapter.`, `local_*_adapter`) inside `backend/app/api/routes/**`.
 
 ## Minimal PR Checklist
 
