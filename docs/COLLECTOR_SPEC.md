@@ -19,6 +19,9 @@ Collector scripts generate `wifi-survey-<timestamp>.zip` with the following cont
 ## Windows
 
 - Script: `collectors/windows/collect.ps1`
+- Collector runs as a single session for about 1 minute and captures a scan every 10 seconds.
+- One run produces one ZIP with multiple time-stamped readings in `scan.json`, and those readings are derived from the `networks.txt` network list rather than the interface summary.
+- Collector writes text artifacts using UTF-8 and configures PowerShell output decoding for UTF-8 before calling `netsh`.
 - Commands used:
   - `netsh wlan show networks mode=bssid`
   - `netsh wlan show interfaces`
@@ -28,6 +31,9 @@ Collector scripts generate `wifi-survey-<timestamp>.zip` with the following cont
 ## macOS
 
 - Script: `collectors/macos/collect.sh`
+- Collector runs as a single session for about 1 minute and captures a scan every 10 seconds.
+- One run produces one ZIP with multiple time-stamped readings in `scan.json`.
+- Collector forces `LANG` and `LC_ALL` to `en_US.UTF-8` so shell output stays in UTF-8.
 - Commands used:
   - `networksetup -listallhardwareports`
   - `networksetup -getairportnetwork`
@@ -44,5 +50,7 @@ Collector scripts generate `wifi-survey-<timestamp>.zip` with the following cont
 
 - Windows example:
   - `pwsh -File collectors/windows/collect.ps1 -OutputDir .\\out`
+- Windows session timing can be overridden with `-SessionDurationSeconds` and `-SampleIntervalSeconds` if needed.
 - macOS example:
   - `sh collectors/macos/collect.sh ./out`
+- macOS session timing can be overridden with positional arguments for duration and interval.
